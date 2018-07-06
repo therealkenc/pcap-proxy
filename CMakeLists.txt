@@ -1,0 +1,37 @@
+cmake_minimum_required(VERSION 3.7)
+project(pcap-proxy CXX)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out/lib")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out/bin")
+
+set(RPCLIB_ROOT ${CMAKE_SOURCE_DIR}/vendor/rpclib)
+set(RPCLIB_INCLUDE_DIR ${RPCLIB_ROOT}/include)
+set(RPCLIB_LIBS rpc)
+link_directories(${CMAKE_BINARY_DIR}/vendor/rpclib)
+
+if(WIN32)
+set(NPCAP_SDK_VER 0.1)
+set(NPCAP_SDK_PATH ${CMAKE_SOURCE_DIR}/vendor/npcap-sdk-${NPCAP_SDK_VER})
+set(PCAP_LIBRARY ${NPCAP_SDK_PATH}/Lib/Packet.lib ${NPCAP_SDK_PATH}/Lib/wpcap.lib)
+set(PCAP_INCLUDE_DIR ${NPCAP_SDK_PATH}/Include)
+# C4834: discarding return value of function with 'nodiscard' attribute (librpc) 
+add_compile_options("/std:c++17" "/EHsc" "/D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING" /wd4834)
+else()
+set(PCAP_ROOT ${CMAKE_SOURCE_DIR}/vendor/libpcap)
+set(PCAP_LIBRARY ${CMAKE_BINARY_DIR}/vendor/libpcap/libpcap.a)
+set(PCAP_INCLUDE_DIR ${PCAP_ROOT}/pcap)
+set(PTHREAD_LIBRARY pthread)
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(${PCAP_ROOT})
+endif()
+
+set(COMMON_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/common)
+
+add_subdirectory(${RPCLIB_ROOT})
+add_subdirectory(common)
+add_subdirectory(service)
+if(UNIX)
+add_subdirectory(shim)
+endif()
