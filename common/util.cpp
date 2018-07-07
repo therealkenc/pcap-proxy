@@ -1,10 +1,10 @@
 #include "util.hpp"
-#include <string.h>
 #include <array>
 #include <iomanip>
 #include <sstream>
+#include <string.h>
 
-std::string addr_len_str(uint32_t *addrlen)
+std::string addr_len_str(uint32_t* addrlen)
 {
     std::ostringstream ss;
     if (addrlen) {
@@ -15,14 +15,14 @@ std::string addr_len_str(uint32_t *addrlen)
     return ss.str();
 }
 
-std::string ptrtohex(const void *p)
+std::string ptrtohex(const void* p)
 {
     std::ostringstream ss;
     ss << (p) ? p : "NULL";
     return ss.str();
 }
 
-std::string tohex(const uint8_t * buf, std::size_t length, size_t pad, bool ascii)
+std::string tohex(const uint8_t* buf, std::size_t length, size_t pad, bool ascii)
 {
     static const char rgbDigits[] = "0123456789abcdef";
     std::size_t count = 0;
@@ -51,16 +51,15 @@ std::string tohex(const uint8_t * buf, std::size_t length, size_t pad, bool asci
     return out.str();
 }
 
-std::string tohex_short(const void * buf, std::size_t length, size_t pad)
+std::string tohex_short(const void* buf, std::size_t length, size_t pad)
 {
     static const char rgbDigits[] = "0123456789abcdef";
     std::stringstream out;
     out << std::string(pad, ' ');
-    const unsigned char *pb = static_cast<const unsigned char*>(buf);
+    const unsigned char* pb = static_cast<const unsigned char*>(buf);
     for (size_t i = 0; i < length; i++) {
         out << rgbDigits[pb[i] >> 4];
         out << rgbDigits[pb[i] & 0x0f];
     }
     return out.str();
 }
-

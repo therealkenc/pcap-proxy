@@ -9,13 +9,10 @@ int mygetpid() { return _getpid(); }
 int mygetpid() { return getpid(); }
 #endif
 
-
 int LOG::level_ = 3;
 fnlogmsg LOG::handler_ = nullhandler;
 
-void nullhandler(const std::string & msg)
-{
-}
+void nullhandler(const std::string& msg) {}
 
 LOG::~LOG()
 {
@@ -30,8 +27,8 @@ LOG::~LOG()
 #else
     std::string label = "\033[33mpcap-shim:\033[0m ";
 #endif
-    ss << label << std::setfill('0') << std::setw(4) 
-        << mygetpid() << " " << msg_.str() << "\n" << std::flush;
+    ss << label << std::setfill('0') << std::setw(4) << mygetpid() << " " << msg_.str() << "\n"
+       << std::flush;
     std::string msg = ss.str();
     handler_(msg);
 }

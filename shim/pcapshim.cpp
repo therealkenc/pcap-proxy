@@ -1,22 +1,22 @@
 #include "pcapshim.hpp"
 #include "dlfn.h"
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/prctl.h>
-#include <sys/timerfd.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#include <linux/netlink.h>
-#include <linux/if_ether.h>
-#include <fcntl.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <array>
-#include <cstdlib>
-#include <pcap.h>
 #include "logging.hpp"
 #include "util.hpp"
+#include <array>
+#include <cstdlib>
+#include <fcntl.h>
+#include <linux/if_ether.h>
+#include <linux/netlink.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <pcap.h>
+#include <stdarg.h>
+#include <sys/ioctl.h>
+#include <sys/prctl.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/timerfd.h>
+#include <unistd.h>
 
 /**
  * Global hooks class, which is the entry point for all our LD_PRELOAD
@@ -27,7 +27,7 @@ static Hooks g_Hooks;
 struct idnamepair_t
 {
     int id_;
-    const char *name_;
+    const char* name_;
 };
 
 template <typename T, std::size_t N>
@@ -37,14 +37,14 @@ constexpr std::size_t countof(T const (&)[N]) noexcept
 }
 
 template <class T>
-static std::string to_string(const T & value)
+static std::string to_string(const T& value)
 {
     std::stringstream ss;
     ss << value;
     return ss.str();
 }
 
-template<size_t N>
+template <size_t N>
 std::string id_to_name(const idnamepair_t pairs[N], int id)
 {
     std::stringstream ss;
@@ -69,7 +69,6 @@ void Hooks::prepare_dlfns()
     write_ = dlfn<fnwrite>("write");
     prctl_ = dlfn<fnprctl>("prctl");
 
-
     pcap_findalldevs_ = dlfn<fnpcap_findalldevs>("pcap_findalldevs", false);
     pcap_freealldevs_ = dlfn<fnpcap_freealldevs>("pcap_freealldevs", false);
     pcap_lookupdev_ = dlfn<fnpcap_lookupdev>("pcap_lookupdev", false);
@@ -81,9 +80,12 @@ void Hooks::prepare_dlfns()
     pcap_datalink_ = dlfn<fnpcap_datalink>("pcap_datalink", false);
     pcap_list_datalinks_ = dlfn<fnpcap_list_datalinks>("pcap_list_datalinks", false);
     pcap_free_datalinks_ = dlfn<fnpcap_free_datalinks>("pcap_free_datalinks", false);
-    pcap_datalink_val_to_name_ = dlfn<fnpcap_datalink_val_to_name>("pcap_datalink_val_to_name", false);
-    pcap_datalink_val_to_description_ = dlfn<fnpcap_datalink_val_to_description>("pcap_datalink_val_to_description", false);
-    pcap_datalink_name_to_val_ = dlfn<fnpcap_datalink_name_to_val>("pcap_datalink_name_to_val", false);
+    pcap_datalink_val_to_name_ =
+            dlfn<fnpcap_datalink_val_to_name>("pcap_datalink_val_to_name", false);
+    pcap_datalink_val_to_description_ =
+            dlfn<fnpcap_datalink_val_to_description>("pcap_datalink_val_to_description", false);
+    pcap_datalink_name_to_val_ =
+            dlfn<fnpcap_datalink_name_to_val>("pcap_datalink_name_to_val", false);
     pcap_is_swapped_ = dlfn<fnpcap_is_swapped>("pcap_is_swapped", false);
     pcap_major_version_ = dlfn<fnpcap_major_version>("pcap_major_version", false);
     pcap_minor_version_ = dlfn<fnpcap_minor_version>("pcap_minor_version", false);
@@ -117,21 +119,18 @@ void Hooks::lazy()
     }
 }
 
-static int libc_write(int fd, const void *buf, size_t count)
+static int libc_write(int fd, const void* buf, size_t count)
 {
     auto fn = dlfn<fnwrite>("write");
     return (fn) ? fn(fd, buf, count) : -1;
 }
 
-static void logmsg(const std::string & msg)
-{
-    libc_write(STDOUT_FILENO, msg.c_str(), msg.length());
-}
+static void logmsg(const std::string& msg) { libc_write(STDOUT_FILENO, msg.c_str(), msg.length()); }
 
 Hooks::Hooks()
 {
     LOG::set_handler(logmsg);
-    //LOG(3) << "Hooks::Hooks() constructor.";
+    // LOG(3) << "Hooks::Hooks() constructor.";
     prepare_dlfns();
 }
 
@@ -145,21 +144,21 @@ int Hooks::close(int fd)
     return ret;
 }
 
-ssize_t Hooks::rpc_sendto(int sock_id, const void *buf, size_t len, int flags,
-                      const struct sockaddr *dest_addr, socklen_t addrlen)
+ssize_t Hooks::rpc_sendto(int sock_id, const void* buf, size_t len, int flags,
+        const struct sockaddr* dest_addr, socklen_t addrlen)
 {
-    const u_char * cb = static_cast<const u_char *>(buf);
+    const u_char* cb = static_cast<const u_char*>(buf);
     rpc_pcap_pktdata_t bufv(cb, cb + len);
-    const char * sab = reinterpret_cast<const char *>(dest_addr);
+    const char* sab = reinterpret_cast<const char*>(dest_addr);
     std::vector<char> addrv(sab, sab + addrlen);
     ssize_t ret = rpc_->call("sendto", sock_id, bufv, flags, addrv).as<ssize_t>();
     return ret;
 }
 
 // htons(ETH_P_ALL) = 768
-int Hooks::rpc_ioctl(const sockdeets_t &sd, unsigned long request, char *argp)
+int Hooks::rpc_ioctl(const sockdeets_t& sd, unsigned long request, char* argp)
 {
-    auto fnifindex = [](struct ifreq &ifr) -> int {
+    auto fnifindex = [](struct ifreq& ifr) -> int {
         ifr.ifr_ifindex = 0;
         return 0;
     };
@@ -168,7 +167,7 @@ int Hooks::rpc_ioctl(const sockdeets_t &sd, unsigned long request, char *argp)
     int ret = -1;
     switch (request) {
     case SIOCGIFINDEX:
-        ret = fnifindex(*reinterpret_cast<struct ifreq *>(argp));
+        ret = fnifindex(*reinterpret_cast<struct ifreq*>(argp));
         break;
     default:
         LOG(3) << "unknown ioctl(). exiting";
@@ -178,12 +177,12 @@ int Hooks::rpc_ioctl(const sockdeets_t &sd, unsigned long request, char *argp)
     return ret;
 }
 
-int Hooks::ioctl(int fd, unsigned long request, char *argp)
+int Hooks::ioctl(int fd, unsigned long request, char* argp)
 {
     int ret = -1;
     auto iter = sm_.find(fd);
     if (iter != sm_.end()) {
-        const sockdeets_t & sd = iter->second;
+        const sockdeets_t& sd = iter->second;
         ret = rpc_ioctl(sd, request, argp);
     } else {
         ret = ioctl_(fd, request, argp);
@@ -192,65 +191,65 @@ int Hooks::ioctl(int fd, unsigned long request, char *argp)
     return ret;
 }
 
-ssize_t Hooks::sendto(int sockfd, const void *buf, size_t len, int flags,
-                      const struct sockaddr *dest_addr, socklen_t addrlen)
+ssize_t Hooks::sendto(int sockfd, const void* buf, size_t len, int flags,
+        const struct sockaddr* dest_addr, socklen_t addrlen)
 {
     ssize_t ret = -1;
     auto iter = sm_.find(sockfd);
     if (iter != sm_.end()) {
-        const sockdeets_t & sd = iter->second;
+        const sockdeets_t& sd = iter->second;
         int sock_id = sd.id_;
         ret = rpc_sendto(sock_id, buf, len, flags, dest_addr, addrlen);
     } else {
         ret = sendto_(sockfd, buf, len, flags, dest_addr, addrlen);
     }
-    std::string dest_str = (dest_addr->sa_family == AF_INET) ?
-        inet_ntoa(((struct sockaddr_in *)dest_addr)->sin_addr) : "???";
-    LOG() << "sendto(" << sockfd << ", " << "[buffer]" << ", " << len << ", "
-        << flags << ", " << dest_str << ", " << addrlen;
+    std::string dest_str = (dest_addr->sa_family == AF_INET)
+                                   ? inet_ntoa(((struct sockaddr_in*)dest_addr)->sin_addr)
+                                   : "???";
+    LOG() << "sendto(" << sockfd << ", "
+          << "[buffer]"
+          << ", " << len << ", " << flags << ", " << dest_str << ", " << addrlen;
     return ret;
 }
 
-ssize_t Hooks::read(int fd, void *buf, size_t count)
+ssize_t Hooks::read(int fd, void* buf, size_t count)
 {
     ssize_t ret = read_(fd, buf, count);
-    LOG() << "read(" << fd << ", " << "[some buf]" << ", " << count << ") = " << ret;
+    LOG() << "read(" << fd << ", "
+          << "[some buf]"
+          << ", " << count << ") = " << ret;
     return ret;
 }
 
-ssize_t Hooks::write(int fd, const void *buf, size_t count)
+ssize_t Hooks::write(int fd, const void* buf, size_t count)
 {
     ssize_t ret = write_(fd, buf, count);
-    LOG() << "write(" << fd << ", " << "[some buf]" << ", " << count << ") = " << ret;
+    LOG() << "write(" << fd << ", "
+          << "[some buf]"
+          << ", " << count << ") = " << ret;
     return ret;
 }
 
-static struct itimerspec & setitimerspecms(struct itimerspec &t, 
-    long value, long interval)
+static struct itimerspec& setitimerspecms(struct itimerspec& t, long value, long interval)
 {
-    t.it_value.tv_sec = value/1000;
-    t.it_value.tv_nsec = (value%1000)*1000000;
-    t.it_interval.tv_sec = interval/1000;
-    t.it_interval.tv_nsec = (interval%1000)*1000000;
+    t.it_value.tv_sec = value / 1000;
+    t.it_value.tv_nsec = (value % 1000) * 1000000;
+    t.it_interval.tv_sec = interval / 1000;
+    t.it_interval.tv_nsec = (interval % 1000) * 1000000;
     return t;
 }
 
 int Hooks::map_socket_descriptor(int sockraw_id, int domain, int type, int protocol)
 {
-    int ret = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK|TFD_CLOEXEC);
+    int ret = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
     if (ret != -1) {
         auto iter = sm_.find(ret);
         if (iter != sm_.end()) {
             LOG(3) << "Socket stub fd is already in map. That ain't right. Exiting.";
             exit(1);
         }
-        sm_[ret] = { 
-            .sd_ = ret, 
-            .id_= sockraw_id, 
-            .domain_= domain, 
-            .type_= type, 
-            .prot_= protocol 
-        };
+        sm_[ret] = {
+                .sd_ = ret, .id_ = sockraw_id, .domain_ = domain, .type_ = type, .prot_ = protocol};
         struct itimerspec new_value;
         struct itimerspec old_value;
         setitimerspecms(new_value, 1, 1);
@@ -264,53 +263,41 @@ int Hooks::map_socket_descriptor(int sockraw_id, int domain, int type, int proto
 
 static std::string sockdomain_name(int domain)
 {
-    static const idnamepair_t pairs[] = {
-        { AF_UNIX, "AF_UNIX" },
-        { AF_INET, "AF_INET" },
-        { AF_INET6, "AF_INET6" },
-        { AF_NETLINK, "AF_NETLINK" },
-        { AF_PACKET, "AF_PACKET" }
-    };
+    static const idnamepair_t pairs[] = {{AF_UNIX, "AF_UNIX"},
+            {AF_INET, "AF_INET"},
+            {AF_INET6, "AF_INET6"},
+            {AF_NETLINK, "AF_NETLINK"},
+            {AF_PACKET, "AF_PACKET"}};
     return id_to_name<countof(pairs)>(pairs, domain);
 }
 
 static std::string socktype_name(int type)
 {
     static idnamepair_t pairs[] = {
-        { SOCK_STREAM, "SOCK_STREAM" },
-        { SOCK_DGRAM, "SOCK_DGRAM" },
-        { SOCK_RAW, "SOCK_RAW" }
-    };
+            {SOCK_STREAM, "SOCK_STREAM"}, {SOCK_DGRAM, "SOCK_DGRAM"}, {SOCK_RAW, "SOCK_RAW"}};
     type &= ~(SOCK_NONBLOCK | SOCK_CLOEXEC);
     return id_to_name<countof(pairs)>(pairs, type);
 }
 
 static std::string sockproto_name(int domain, int protocol)
 {
-    static idnamepair_t ip_pairs[] = {
-        { IPPROTO_IP, "IPPROTO_IP" },
-        { IPPROTO_TCP, "IPPROTO_TCP" },
-        { IPPROTO_UDP, "IPPROTO_UDP"},
-        { IPPROTO_RAW, "IPPROTO_RAW" }
-    };
+    static idnamepair_t ip_pairs[] = {{IPPROTO_IP, "IPPROTO_IP"},
+            {IPPROTO_TCP, "IPPROTO_TCP"},
+            {IPPROTO_UDP, "IPPROTO_UDP"},
+            {IPPROTO_RAW, "IPPROTO_RAW"}};
     static idnamepair_t netlink_pairs[] = {
-        { NETLINK_ROUTE, "NETLINK_ROUTE" },
-        { NETLINK_SELINUX, "NETLINK_SELINUX" }
-    };
-    static idnamepair_t eth_pairs[] = {
-        { ETH_P_802_3, "ETH_P_802_3" },
-        { ETH_P_ALL, "ETH_P_ALL" }
-    };
+            {NETLINK_ROUTE, "NETLINK_ROUTE"}, {NETLINK_SELINUX, "NETLINK_SELINUX"}};
+    static idnamepair_t eth_pairs[] = {{ETH_P_802_3, "ETH_P_802_3"}, {ETH_P_ALL, "ETH_P_ALL"}};
     switch (domain) {
-        case AF_UNIX:
-            return to_string(protocol);
-        case AF_INET:
-        case AF_INET6:
-            return id_to_name<countof(ip_pairs)>(ip_pairs, protocol);
-        case AF_NETLINK:
-            return id_to_name<countof(netlink_pairs)>(netlink_pairs, protocol);
-        case AF_PACKET:
-            return id_to_name<countof(eth_pairs)>(eth_pairs, ntohs((short)protocol));
+    case AF_UNIX:
+        return to_string(protocol);
+    case AF_INET:
+    case AF_INET6:
+        return id_to_name<countof(ip_pairs)>(ip_pairs, protocol);
+    case AF_NETLINK:
+        return id_to_name<countof(netlink_pairs)>(netlink_pairs, protocol);
+    case AF_PACKET:
+        return id_to_name<countof(eth_pairs)>(eth_pairs, ntohs((short)protocol));
     };
 }
 
@@ -336,11 +323,11 @@ int Hooks::socket_raw(int domain, int type, int protocol)
         ret = rpc_socket_raw(domain, type, protocol);
         break;
     case AF_PACKET:
-        //LOG() << "socket_raw() AF_PACKET";
+        // LOG() << "socket_raw() AF_PACKET";
         ret = rpc_socket_raw(domain, type, protocol);
         break;
-    default:    // f.e. AF_UNIX, AF_NETLINK, AF_INET6 etc
-        //LOG() << "socket_raw() \"other\" not handled (prot: " << protocol << ")";
+    default: // f.e. AF_UNIX, AF_NETLINK, AF_INET6 etc
+        // LOG() << "socket_raw() \"other\" not handled (prot: " << protocol << ")";
         ret = socket_(domain, type, protocol);
         break;
     }
@@ -355,20 +342,17 @@ int Hooks::socket(int domain, int type, int protocol)
     } else {
         ret = socket_(domain, type, protocol);
     }
-    LOG() << "socket(" 
-        << sockdomain_name(domain) << ", " 
-        << socktype_name(type) << ", " 
-        << sockproto_name(domain, protocol) << ") = " << ret;
+    LOG() << "socket(" << sockdomain_name(domain) << ", " << socktype_name(type) << ", "
+          << sockproto_name(domain, protocol) << ") = " << ret;
     return ret;
 }
 
-int Hooks::rpc_setsockopt(const sockdeets_t &sd, int level, int optname, 
-                    const void *optval, socklen_t optlen)
+int Hooks::rpc_setsockopt(
+        const sockdeets_t& sd, int level, int optname, const void* optval, socklen_t optlen)
 {
-    LOG() << "rpc_setsockopt(" << sd.sd_ << " [" << sd.id_ << "], " << level 
-        << ", " << optname << ", " << tohex_short(optval, optlen) << ", " 
-        << optlen << ")";
-    const char *p = static_cast<const char*>(optval);
+    LOG() << "rpc_setsockopt(" << sd.sd_ << " [" << sd.id_ << "], " << level << ", " << optname
+          << ", " << tohex_short(optval, optlen) << ", " << optlen << ")";
+    const char* p = static_cast<const char*>(optval);
     std::vector<char> opt(p, p + optlen);
     int ret = rpc_->call("setsockopt", sd.id_, level, optname, opt).as<int>();
     if (ret < 0) {
@@ -379,18 +363,17 @@ int Hooks::rpc_setsockopt(const sockdeets_t &sd, int level, int optname,
 }
 
 /**
-  FIXME: We only shim SO_BINDTODEVICE on SOCK_RAW sockets, but 
+  FIXME: We only shim SO_BINDTODEVICE on SOCK_RAW sockets, but
   nmap appears to do this on AF_INET6/SOCK_DGRAM/IPPROTO_UDP
   for reasons. This is just to quash an nmap warning
   that doesn't appear fatal (for now).
  **/
-int Hooks::setsockopt(int sockfd, int level, int optname,
-                      const void *optval, socklen_t optlen)
+int Hooks::setsockopt(int sockfd, int level, int optname, const void* optval, socklen_t optlen)
 {
     int ret = -1;
     auto iter = sm_.find(sockfd);
     if (iter != sm_.end()) {
-        const sockdeets_t & sd = iter->second;
+        const sockdeets_t& sd = iter->second;
         ret = rpc_setsockopt(sd, level, optname, optval, optlen);
     } else {
         if (optname == SO_BINDTODEVICE) {
@@ -399,42 +382,41 @@ int Hooks::setsockopt(int sockfd, int level, int optname,
             ret = setsockopt_(sockfd, level, optname, optval, optlen);
         }
     }
-    LOG() << "setsockopt(" << sockfd << ", " << level << ", " << optname << ", "
-        << ptrtohex(optval) << ", " << optlen << ") = " << ret;
+    LOG() << "setsockopt(" << sockfd << ", " << level << ", " << optname << ", " << ptrtohex(optval)
+          << ", " << optlen << ") = " << ret;
     return ret;
 }
 
-std::string pcap_desc(pcap_t *p)
+std::string pcap_desc(pcap_t* p)
 {
     std::ostringstream ss;
     ss << ptrtohex(p) << " [id: " << get_pcap_id(p) << " sd: " << get_pcap_sd(p) << "]";
     return ss.str();
 }
 
-int Hooks::pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
+int Hooks::pcap_findalldevs(pcap_if_t** alldevsp, char* errbuf)
 {
     LOG(3) << "pcap_findalldevs()";
     exit(1);
 }
 
-void Hooks::pcap_freealldevs(pcap_if_t *alldevs)
+void Hooks::pcap_freealldevs(pcap_if_t* alldevs)
 {
     LOG(3) << "pcap_freealldevs()";
     exit(1);
 }
 
-char * Hooks::pcap_lookupdev(char *errbuf)
+char* Hooks::pcap_lookupdev(char* errbuf)
 {
     static char device[64];
     LOG(3) << "pcap_lookupdev()";
     lazy();
     auto ret = rpc_->call("pcap_lookupdev").as<rpc_pcap_lookupdev_ret_t>();
     int retcode = std::get<0>(ret);
-    const std::string &d = std::get<1>(ret);
-    LOG(3) << "pcap_lookupdev() = " << retcode  
-        << " device: " << d << 
-        " (errbuf: " << std::get<2>(ret) << ")";
-    if (retcode == 0) { 
+    const std::string& d = std::get<1>(ret);
+    LOG(3) << "pcap_lookupdev() = " << retcode << " device: " << d
+           << " (errbuf: " << std::get<2>(ret) << ")";
+    if (retcode == 0) {
         // zero on success
         std::strncpy(device, d.c_str(), sizeof(device));
         return device;
@@ -442,13 +424,13 @@ char * Hooks::pcap_lookupdev(char *errbuf)
     return NULL;
 }
 
-pcap_t * Hooks::rpc_pcap_open_live(const char *device, int snaplen,
-            int promisc, int to_ms, char *errbuf)
+pcap_t* Hooks::rpc_pcap_open_live(
+        const char* device, int snaplen, int promisc, int to_ms, char* errbuf)
 {
     lazy();
     std::string sdev = device;
-    auto ret = rpc_->call("pcap_open_live", 
-        sdev, snaplen, promisc, to_ms).as<rpc_pcap_basic_ret_t>();
+    auto ret =
+            rpc_->call("pcap_open_live", sdev, snaplen, promisc, to_ms).as<rpc_pcap_basic_ret_t>();
     int id = std::get<0>(ret);
     if (id < 0) {
         LOG(3) << "rpc_pcap_open_live() failed " << id;
@@ -458,25 +440,23 @@ pcap_t * Hooks::rpc_pcap_open_live(const char *device, int snaplen,
     sockmap_t::iterator sockit = sm_.find(sockfd);
     struct pcap pc;
     pc.sockit_ = sockit;
-    struct pcap &pcref = pcm_[sockit->second.id_] = pc;
-    const std::string &err = std::get<1>(ret);
+    struct pcap& pcref = pcm_[sockit->second.id_] = pc;
+    const std::string& err = std::get<1>(ret);
     strncpy(errbuf, err.c_str(), PCAP_ERRBUF_SIZE);
     return &pcref; // nonobv: address of reference to pcap in the pcap map
 }
 
-pcap_t * Hooks::pcap_open_live(const char *device, int snaplen,
-            int promisc, int to_ms, char *errbuf)
+pcap_t* Hooks::pcap_open_live(const char* device, int snaplen, int promisc, int to_ms, char* errbuf)
 {
     std::memset(errbuf, 0, PCAP_ERRBUF_SIZE);
     pcap_t* p = rpc_pcap_open_live(device, snaplen, promisc, to_ms, errbuf);
-    const sockdeets_t & sd = p->sockit_->second;
-    LOG() << "pcap_open_live(" << device << ", " << snaplen << ", " 
-        << promisc << ", " << to_ms << ", [errbuf]) = "  
-        << pcap_desc(p) << " (" << errbuf << ")";
+    const sockdeets_t& sd = p->sockit_->second;
+    LOG() << "pcap_open_live(" << device << ", " << snaplen << ", " << promisc << ", " << to_ms
+          << ", [errbuf]) = " << pcap_desc(p) << " (" << errbuf << ")";
     return p;
 }
 
-int Hooks::pcap_activate(pcap_t *p)
+int Hooks::pcap_activate(pcap_t* p)
 {
     int ret = -1;
     LOG(3) << "pcap_activate(" << ptrtohex(p) << ") = " << ret;
@@ -484,141 +464,133 @@ int Hooks::pcap_activate(pcap_t *p)
     return ret;
 }
 
-void Hooks::pcap_close(pcap_t *p)
+void Hooks::pcap_close(pcap_t* p)
 {
     int ret = rpc_->call("pcap_close", get_pcap_id(p)).as<int>();
     LOG() << "pcap_close(" << pcap_desc(p) << ") = " << ret;
 }
 
-int Hooks::pcap_set_protocol(pcap_t *p, int protocol)
+int Hooks::pcap_set_protocol(pcap_t* p, int protocol)
 {
     LOG(3) << "pcap_set_protocol";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_datalink(pcap_t *p)
+int Hooks::pcap_datalink(pcap_t* p)
 {
     int ret = rpc_->call("pcap_datalink", get_pcap_id(p)).as<int>();
     LOG() << "pcap_datalink(" << pcap_desc(p) << ") = " << ret;
     return ret;
 }
 
-int Hooks::pcap_set_datalink(pcap_t *p, int dlt)
+int Hooks::pcap_set_datalink(pcap_t* p, int dlt)
 {
     LOG(3) << "pcap_set_datalink()";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_list_datalinks(pcap_t *p, int **dlt_buf)
+int Hooks::pcap_list_datalinks(pcap_t* p, int** dlt_buf)
 {
     LOG(3) << "pcap_list_datalinks()";
     exit(1);
     return 0;
 }
 
-void Hooks::pcap_free_datalinks(int *dlt_list)
+void Hooks::pcap_free_datalinks(int* dlt_list)
 {
     LOG(3) << "pcap_free_datalinks()";
     exit(1);
 }
 
-const char * Hooks::pcap_datalink_val_to_name(int dlt)
+const char* Hooks::pcap_datalink_val_to_name(int dlt)
 {
     LOG(3) << "pcap_datalink_val_to_name()";
     exit(1);
     return NULL;
 }
 
-const char * Hooks::pcap_datalink_val_to_description(int dlt)
+const char* Hooks::pcap_datalink_val_to_description(int dlt)
 {
     LOG(3) << "pcap_datalink_val_to_description()";
     exit(1);
     return NULL;
 }
 
-int Hooks::pcap_datalink_name_to_val(const char *name)
+int Hooks::pcap_datalink_name_to_val(const char* name)
 {
     LOG(3) << "pcap_datalink_name_to_val()";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_is_swapped(pcap_t *p)
+int Hooks::pcap_is_swapped(pcap_t* p)
 {
     LOG(3) << "pcap_is_swapped";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_major_version(pcap_t *p)
+int Hooks::pcap_major_version(pcap_t* p)
 {
     LOG(3) << "pcap_major_version";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_minor_version(pcap_t *p)
+int Hooks::pcap_minor_version(pcap_t* p)
 {
     LOG(3) << "pcap_minor_version()";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_loop(pcap_t *p, int cnt, pcap_handler callback, u_char *user)
+int Hooks::pcap_loop(pcap_t* p, int cnt, pcap_handler callback, u_char* user)
 {
     LOG(3) << "pcap_loop()";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_dispatch(pcap_t *p, int cnt, pcap_handler callback, u_char *user)
+int Hooks::pcap_dispatch(pcap_t* p, int cnt, pcap_handler callback, u_char* user)
 {
     LOG(3) << "pcap_dispatch()";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_next_ex(pcap_t *p, struct pcap_pkthdr **pkt_header, const u_char **pkt_data)
+int Hooks::pcap_next_ex(pcap_t* p, struct pcap_pkthdr** pkt_header, const u_char** pkt_data)
 {
     // first reset the timer fd
     int td = get_pcap_sd(p);
     uint64_t exp;
     int rdret = read(td, &exp, sizeof(uint64_t));
-    //LOG(3) << "timer expiries: " << exp << " ret: " << rdret;
+    // LOG(3) << "timer expiries: " << exp << " ret: " << rdret;
 
     lazy();
     auto rpc_ret = rpc_->call("pcap_next_ex", get_pcap_id(p)).as<rpc_pcap_next_ret_t>();
     int ret = std::get<0>(rpc_ret);
     std::string pktdata_str = "NULL";
     if (ret == 1) {
-        const rpc_pcap_pkthdr_t &rpc_hdr = std::get<2>(rpc_ret);
-        struct timeval ts = {
-            .tv_sec = std::get<0>(rpc_hdr),
-            .tv_usec = std::get<1>(rpc_hdr)
-        };
-        p->pcap_hdr_ = {
-            .ts = ts,
-            .caplen = std::get<2>(rpc_hdr),
-            .len = std::get<3>(rpc_hdr)
-        };
+        const rpc_pcap_pkthdr_t& rpc_hdr = std::get<2>(rpc_ret);
+        struct timeval ts = {.tv_sec = std::get<0>(rpc_hdr), .tv_usec = std::get<1>(rpc_hdr)};
+        p->pcap_hdr_ = {.ts = ts, .caplen = std::get<2>(rpc_hdr), .len = std::get<3>(rpc_hdr)};
         *pkt_header = &p->pcap_hdr_;
-        const rpc_pcap_pktdata_t &rpc_data = std::get<1>(rpc_ret);
+        const rpc_pcap_pktdata_t& rpc_data = std::get<1>(rpc_ret);
         p->pcap_data_ = rpc_data; // local copy lives in our fake struct pcap
         *pkt_data = p->pcap_data_.data();
         pktdata_str = tohex_short(rpc_data.data(), rpc_data.size());
     }
-    LOG() << "pcap_next_ex(" << pcap_desc(p) << ", [hdr]) = " << ret 
-        << " [" << pktdata_str << "]";
+    LOG() << "pcap_next_ex(" << pcap_desc(p) << ", [hdr]) = " << ret << " [" << pktdata_str << "]";
     return ret;
 }
 
-const u_char *Hooks::pcap_next(pcap_t *p, struct pcap_pkthdr *h)
+const u_char* Hooks::pcap_next(pcap_t* p, struct pcap_pkthdr* h)
 {
-    //LOG(3) << "pcap_next()";
-    const u_char *ret = NULL;
-    struct pcap_pkthdr *phdr;
+    // LOG(3) << "pcap_next()";
+    const u_char* ret = NULL;
+    struct pcap_pkthdr* phdr;
     int retex = Hooks::pcap_next_ex(p, &phdr, &ret);
     if (retex == 1) {
         *h = *phdr;
@@ -626,95 +598,93 @@ const u_char *Hooks::pcap_next(pcap_t *p, struct pcap_pkthdr *h)
     return ret;
 }
 
-void Hooks::pcap_breakloop(pcap_t *p)
+void Hooks::pcap_breakloop(pcap_t* p)
 {
     LOG(3) << "pcap_breakloop()";
     exit(1);
 }
 
-int Hooks::pcap_setnonblock(pcap_t *p, int nonblock, char *errbuf)
+int Hooks::pcap_setnonblock(pcap_t* p, int nonblock, char* errbuf)
 {
     lazy();
-    auto rpc_ret = rpc_->call("pcap_setnonblock", get_pcap_id(p), nonblock).as<rpc_pcap_basic_ret_t>();
+    auto rpc_ret =
+            rpc_->call("pcap_setnonblock", get_pcap_id(p), nonblock).as<rpc_pcap_basic_ret_t>();
     int ret = std::get<0>(rpc_ret);
-    const std::string &err = std::get<1>(rpc_ret);
+    const std::string& err = std::get<1>(rpc_ret);
     strncpy(errbuf, err.c_str(), PCAP_ERRBUF_SIZE);
-    LOG(3) << "pcap_setnonblock(" << pcap_desc(p) << ", " << nonblock << ") = " 
-        << ret << " (" << err << ")";
+    LOG(3) << "pcap_setnonblock(" << pcap_desc(p) << ", " << nonblock << ") = " << ret << " ("
+           << err << ")";
     return ret;
 }
 
-int Hooks::pcap_getnonblock(pcap_t *p, char *errbuf)
+int Hooks::pcap_getnonblock(pcap_t* p, char* errbuf)
 {
     LOG(3) << "pcap_getnonblock()";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_get_selectable_fd(pcap_t *p)
+int Hooks::pcap_get_selectable_fd(pcap_t* p)
 {
     int ret = get_pcap_sd(p);
     LOG() << "pcap_get_selectable_fd(" << pcap_desc(p) << ") = " << ret;
     return ret;
 }
 
-const char *Hooks::pcap_statustostr(int error)
+const char* Hooks::pcap_statustostr(int error)
 {
     LOG(3) << "pcap_statustostr()";
     exit(1);
     return NULL;
 }
 
-const char *Hooks::pcap_strerror(int)
+const char* Hooks::pcap_strerror(int)
 {
     LOG(3) << "pcap_strerror()";
     exit(1);
     return NULL;
 }
 
-char *Hooks::pcap_geterr(pcap_t *)
+char* Hooks::pcap_geterr(pcap_t*)
 {
     LOG(3) << "pcap_geterr()";
     exit(1);
     return NULL;
 }
 
-void Hooks::pcap_perror(pcap_t *, const char *)
+void Hooks::pcap_perror(pcap_t*, const char*)
 {
     LOG(3) << "pcap_perror()";
     exit(1);
 }
 
-int Hooks::pcap_compile(pcap_t *p, struct bpf_program *fp, 
-    const std::string &filter_exp, int optimize, bpf_u_int32 netmask)
+int Hooks::pcap_compile(pcap_t* p, struct bpf_program* fp, const std::string& filter_exp,
+        int optimize, bpf_u_int32 netmask)
 {
     lazy();
-    auto rpc_ret = rpc_->call("pcap_compile", get_pcap_id(p), filter_exp, 
-        optimize, netmask).as<rpc_pcap_compile_ret_t>();
+    auto rpc_ret = rpc_->call("pcap_compile", get_pcap_id(p), filter_exp, optimize, netmask)
+                           .as<rpc_pcap_compile_ret_t>();
     int ret = std::get<0>(rpc_ret);
     if (ret == 0) {
         int prog_id = std::get<1>(rpc_ret);
-        const rpc_bpf_program_t & prog = std::get<2>(rpc_ret);
+        const rpc_bpf_program_t& prog = std::get<2>(rpc_ret);
         u_int bf_len = prog.size();
         fp->bf_len = bf_len;
-        fp->bf_insns = static_cast<struct bpf_insn*>(std::malloc(bf_len*sizeof(bpf_insn)));
+        fp->bf_insns = static_cast<struct bpf_insn*>(std::malloc(bf_len * sizeof(bpf_insn)));
         for (u_int i = 0; i < bf_len; i++) {
-            const rpc_bpf_insn_t & insn = prog[i];
-            fp->bf_insns[i] = { 
-                .code = std::get<0>(insn),
-                .jt = std::get<1>(insn),
-                .jf = std::get<2>(insn),
-                .k = std::get<3>(insn)
-            };
+            const rpc_bpf_insn_t& insn = prog[i];
+            fp->bf_insns[i] = {.code = std::get<0>(insn),
+                    .jt = std::get<1>(insn),
+                    .jf = std::get<2>(insn),
+                    .k = std::get<3>(insn)};
         }
     }
-    LOG() << "pcap_compile(" << pcap_desc(p) << ", "
-        << ptrtohex(fp) << ", " << filter_exp << ", " 
-        << optimize << ", " << netmask << ") = " << ret;
-    return ret;    
+    LOG() << "pcap_compile(" << pcap_desc(p) << ", " << ptrtohex(fp) << ", " << filter_exp << ", "
+          << optimize << ", " << netmask << ") = " << ret;
+    return ret;
 }
 
-int Hooks::pcap_setfilter(pcap_t *p, struct bpf_program *fp)
+int Hooks::pcap_setfilter(pcap_t* p, struct bpf_program* fp)
 {
     lazy();
     int ret = rpc_->call("pcap_setfilter", get_pcap_id(p), 71).as<int>();
@@ -722,105 +692,47 @@ int Hooks::pcap_setfilter(pcap_t *p, struct bpf_program *fp)
     return ret;
 }
 
-void Hooks::pcap_freecode(struct bpf_program *fp)
+void Hooks::pcap_freecode(struct bpf_program* fp)
 {
     int ret = rpc_->call("pcap_freecode", 71).as<int>();
     LOG() << "pcap_freecode(" << ptrtohex(fp) << ") = " << ret;
     std::free(fp->bf_insns);
 }
 
-int Hooks::pcap_lookupnet(const char *device, bpf_u_int32 *netp, bpf_u_int32 *maskp, char *errbuf)
+int Hooks::pcap_lookupnet(const char* device, bpf_u_int32* netp, bpf_u_int32* maskp, char* errbuf)
 {
     LOG(3) << "pcap_lookupnet()";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_stats(pcap_t *p, struct pcap_stat *ps)
+int Hooks::pcap_stats(pcap_t* p, struct pcap_stat* ps)
 {
     LOG(3) << "pcap_stats()";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_inject(pcap_t *p, const void *buf, size_t size)
+int Hooks::pcap_inject(pcap_t* p, const void* buf, size_t size)
 {
     LOG(3) << "pcap_inject()";
     exit(1);
     return 0;
 }
 
-int Hooks::pcap_sendpacket(pcap_t *p, const u_char *buf, int size)
+int Hooks::pcap_sendpacket(pcap_t* p, const u_char* buf, int size)
 {
     LOG(3) << "pcap_sendpacket()";
     exit(1);
     return 0;
 }
 
-const char *Hooks::pcap_lib_version(void)
+const char* Hooks::pcap_lib_version(void)
 {
     static std::string ver;
     lazy();
     ver = rpc_->call("pcap_lib_version").as<std::string>();
     return ver.c_str();
-}
-
-std::string prctl_option_str(int option)
-{
-    static const idnamepair_t pairs[] = {
-        { PR_SET_PDEATHSIG, "PR_SET_PDEATHSIG" },
-        { PR_GET_PDEATHSIG, "PR_GET_PDEATHSIG" },
-        { PR_GET_DUMPABLE, "PR_GET_DUMPABLE" },
-        { PR_SET_DUMPABLE, "PR_SET_DUMPABLE" },
-        { PR_GET_UNALIGN, "PR_GET_UNALIGN" },
-        { PR_SET_UNALIGN, "PR_SET_UNALIGN" },
-        { PR_GET_KEEPCAPS, "PR_GET_KEEPCAPS" },
-        { PR_SET_KEEPCAPS, "PR_SET_KEEPCAPS" },
-        { PR_GET_FPEMU, "PR_GET_FPEMU" },
-        { PR_SET_FPEMU, "PR_SET_FPEMU" },
-        { PR_GET_FPEXC, "PR_GET_FPEXC" },
-        { PR_SET_FPEXC, "PR_SET_FPEXC" },
-        { PR_GET_TIMING, "PR_GET_TIMING" },
-        { PR_SET_TIMING, "PR_SET_TIMING" },
-        { PR_SET_NAME, "PR_SET_NAME" },
-        { PR_GET_NAME, "PR_GET_NAME" },
-        { PR_GET_ENDIAN, "PR_GET_ENDIAN" },
-        { PR_SET_ENDIAN, "PR_SET_ENDIAN" },
-        { PR_GET_SECCOMP, "PR_GET_SECCOMP" },
-        { PR_SET_SECCOMP, "PR_SET_SECCOMP" },
-        { PR_CAPBSET_READ, "PR_CAPBSET_READ" },
-        { PR_CAPBSET_DROP, "PR_CAPBSET_DROP" },
-        { PR_GET_TSC, "PR_GET_TSC" },
-        { PR_SET_TSC, "PR_SET_TSC" },
-        { PR_GET_SECUREBITS, "PR_GET_SECUREBITS" },
-        { PR_SET_SECUREBITS, "PR_SET_SECUREBITS" },
-        { PR_SET_TIMERSLACK, "PR_SET_TIMERSLACK" },
-        { PR_GET_TIMERSLACK, "PR_GET_TIMERSLACK" },
-        { PR_TASK_PERF_EVENTS_DISABLE, "PR_TASK_PERF_EVENTS_DISABLE" },
-        { PR_TASK_PERF_EVENTS_ENABLE, "PR_TASK_PERF_EVENTS_ENABLE" },
-        { PR_MCE_KILL, "PR_MCE_KILL" },
-        { PR_MCE_KILL_GET, "PR_MCE_KILL_GET" },
-        { PR_SET_MM, "PR_SET_MM" },
-        { PR_SET_CHILD_SUBREAPER, "PR_SET_CHILD_SUBREAPER" },
-        { PR_GET_CHILD_SUBREAPER, "PR_GET_CHILD_SUBREAPER" },
-        { PR_SET_NO_NEW_PRIVS, "PR_SET_NO_NEW_PRIVS" },
-        { PR_GET_NO_NEW_PRIVS, "PR_GET_NO_NEW_PRIVS" },
-        { PR_GET_TID_ADDRESS, "PR_GET_TID_ADDRESS" },
-        { PR_SET_THP_DISABLE, "PR_SET_THP_DISABLE" },
-        { PR_GET_THP_DISABLE, "PR_GET_THP_DISABLE" },
-        { PR_MPX_ENABLE_MANAGEMENT, "PR_MPX_ENABLE_MANAGEMENT" },
-        { PR_MPX_DISABLE_MANAGEMENT, "PR_MPX_DISABLE_MANAGEMENT" },
-        { PR_SET_FP_MODE, "PR_SET_FP_MODE" },
-        { PR_CAP_AMBIENT, "PR_CAP_AMBIENT" },
-    #ifdef PR_SVE_SET_VL
-        { PR_SVE_SET_VL, "PR_SVE_SET_VL" },
-        { PR_SVE_GET_VL, "PR_SVE_GET_VL" },
-        { PR_GET_DISPLAY_LSM, "PR_GET_DISPLAY_LSM" },
-        { PR_SET_DISPLAY_LSM, "PR_SET_DISPLAY_LSM" }
-    #endif
-    };
-
-    return id_to_name<countof(pairs)>(pairs, option);
 }
 
 static std::string err_str(int ret)
@@ -837,49 +749,22 @@ static std::string err_str(int ret)
     return ss.str();
 }
 
-int Hooks::prctl(int option, unsigned long arg2, unsigned long arg3,
-                unsigned long arg4, unsigned long arg5)
-{
-    int ret = prctl_(option, arg2, arg3, arg4, arg5);
-    int lvl = (option == PR_GET_SECUREBITS || option == PR_SET_SECUREBITS) ? 
-        3 : 4;
-    LOG(lvl) << "prctl(" << prctl_option_str(option) << ", " << arg2 << ", "
-        << arg3 << ", " << arg4 << ", " << arg5 << ") = " << err_str(ret);
-    if (ret == -1) {
-        if (option == PR_GET_SECUREBITS) {
-            LOG(3) << "...faking prctl(PR_GET_SECUREBITS) = 0";
-            ret = 0;
-        } else {
-            LOG(3) << "...prctl() failed. Exiting.";
-            exit(1);
-        }
-    }
-    return ret;
-}
-
-//bool g_pass = true;
+// bool g_pass = true;
 bool g_pass = false;
 
 extern "C" {
 
-int socket(int domain, int type, int protocol)
-{
-    return g_Hooks.socket(domain, type, protocol);
-}
+int socket(int domain, int type, int protocol) { return g_Hooks.socket(domain, type, protocol); }
 
-int setsockopt(int sockfd, int level, int optname,
-                      const void *optval, socklen_t optlen)
+int setsockopt(int sockfd, int level, int optname, const void* optval, socklen_t optlen)
 {
     return g_Hooks.setsockopt(sockfd, level, optname, optval, optlen);
 }
 
-int close(int fd)
-{
-    return g_Hooks.close(fd);
-}
+int close(int fd) { return g_Hooks.close(fd); }
 
-ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
-                      const struct sockaddr *dest_addr, socklen_t addrlen)
+ssize_t sendto(int sockfd, const void* buf, size_t len, int flags, const struct sockaddr* dest_addr,
+        socklen_t addrlen)
 {
     return g_Hooks.sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 }
@@ -888,7 +773,7 @@ int ioctl(int fd, unsigned long request, ...)
 {
     va_list ap;
     va_start(ap, request);
-    char *argp = va_arg(ap, char *);
+    char* argp = va_arg(ap, char*);
     int ret = g_Hooks.ioctl(fd, request, argp);
     va_end(ap);
     return ret;
@@ -906,242 +791,198 @@ ssize_t write(int fd, const void *buf, size_t count)
 }
 #endif
 
-int prctl(int option, ...)
+int pcap_findalldevs(pcap_if_t** alldevsp, char* errbuf)
 {
-    va_list ap;
-    va_start(ap, option);
-    unsigned long arg2 = va_arg(ap, unsigned long);
-    unsigned long arg3 = va_arg(ap, unsigned long);
-    unsigned long arg4 = va_arg(ap, unsigned long);
-    unsigned long arg5 = va_arg(ap, unsigned long);
-    int ret = g_Hooks.prctl(option, arg2, arg3, arg4, arg5);
-    va_end(ap);
-    return ret;
+    return (g_pass) ? g_Hooks.pcap_findalldevs_(alldevsp, errbuf)
+                    : g_Hooks.pcap_findalldevs(alldevsp, errbuf);
 }
 
-int pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
+void pcap_freealldevs(pcap_if_t* alldevs)
 {
-    return (g_pass) ? g_Hooks.pcap_findalldevs_(alldevsp, errbuf) :
-        g_Hooks.pcap_findalldevs(alldevsp, errbuf);
+    return (g_pass) ? g_Hooks.pcap_freealldevs_(alldevs) : g_Hooks.pcap_freealldevs(alldevs);
 }
 
-void pcap_freealldevs(pcap_if_t *alldevs)
+char* pcap_lookupdev(char* errbuf)
 {
-    return (g_pass) ? g_Hooks.pcap_freealldevs_(alldevs) :
-        g_Hooks.pcap_freealldevs(alldevs);
+    return (g_pass) ? g_Hooks.pcap_lookupdev_(errbuf) : g_Hooks.pcap_lookupdev(errbuf);
 }
 
-char *pcap_lookupdev(char *errbuf)
+pcap_t* pcap_open_live(const char* device, int snaplen, int promisc, int to_ms, char* errbuf)
 {
-    return (g_pass) ? g_Hooks.pcap_lookupdev_(errbuf) :
-        g_Hooks.pcap_lookupdev(errbuf);
+    return (g_pass) ? g_Hooks.pcap_open_live_(device, snaplen, promisc, to_ms, errbuf)
+                    : g_Hooks.pcap_open_live(device, snaplen, promisc, to_ms, errbuf);
 }
 
-pcap_t *pcap_open_live(const char *device, int snaplen,
-               int promisc, int to_ms, char *errbuf)
+int pcap_activate(pcap_t* p)
 {
-    return (g_pass) ? g_Hooks.pcap_open_live_(device, snaplen, promisc, to_ms, errbuf) :
-        g_Hooks.pcap_open_live(device, snaplen, promisc, to_ms, errbuf);
+    return (g_pass) ? g_Hooks.pcap_activate_(p) : g_Hooks.pcap_activate(p);
 }
 
-int pcap_activate(pcap_t *p)
+void pcap_close(pcap_t* p) { return (g_pass) ? g_Hooks.pcap_close_(p) : g_Hooks.pcap_close(p); }
+
+int pcap_set_protocol(pcap_t* p, int protocol)
 {
-    return (g_pass) ? g_Hooks.pcap_activate_(p) :
-        g_Hooks.pcap_activate(p);
+    return (g_pass) ? g_Hooks.pcap_set_protocol_(p, protocol)
+                    : g_Hooks.pcap_set_protocol(p, protocol);
 }
 
-void pcap_close(pcap_t *p)
+int pcap_datalink(pcap_t* p)
 {
-    return (g_pass) ? g_Hooks.pcap_close_(p) : 
-        g_Hooks.pcap_close(p);
+    return (g_pass) ? g_Hooks.pcap_datalink_(p) : g_Hooks.pcap_datalink(p);
 }
 
-int pcap_set_protocol(pcap_t *p, int protocol)
+int pcap_set_datalink(pcap_t* p, int dlt)
 {
-    return (g_pass) ? g_Hooks.pcap_set_protocol_(p, protocol) : 
-        g_Hooks.pcap_set_protocol(p, protocol);
+    return (g_pass) ? g_Hooks.pcap_set_datalink_(p, dlt) : g_Hooks.pcap_set_datalink(p, dlt);
 }
 
-int pcap_datalink(pcap_t *p)
+int pcap_list_datalinks(pcap_t* p, int** dlt_buf)
 {
-    return (g_pass) ? g_Hooks.pcap_datalink_(p) : 
-        g_Hooks.pcap_datalink(p);
+    return (g_pass) ? g_Hooks.pcap_list_datalinks_(p, dlt_buf)
+                    : g_Hooks.pcap_list_datalinks(p, dlt_buf);
 }
 
-int pcap_set_datalink(pcap_t *p, int dlt)
+void pcap_free_datalinks(int* dlt_list)
 {
-    return (g_pass) ? g_Hooks.pcap_set_datalink_(p, dlt) : 
-        g_Hooks.pcap_set_datalink(p, dlt);
+    (g_pass) ? g_Hooks.pcap_free_datalinks_(dlt_list) : g_Hooks.pcap_free_datalinks(dlt_list);
 }
 
-
-int pcap_list_datalinks(pcap_t *p, int **dlt_buf)
+const char* pcap_datalink_val_to_name(int dlt)
 {
-    return (g_pass) ? g_Hooks.pcap_list_datalinks_(p, dlt_buf) : 
-        g_Hooks.pcap_list_datalinks(p, dlt_buf);
+    return (g_pass) ? g_Hooks.pcap_datalink_val_to_name_(dlt)
+                    : g_Hooks.pcap_datalink_val_to_name(dlt);
 }
 
-void pcap_free_datalinks(int *dlt_list)
+const char* pcap_datalink_val_to_description(int dlt)
 {
-    (g_pass) ? g_Hooks.pcap_free_datalinks_(dlt_list) : 
-        g_Hooks.pcap_free_datalinks(dlt_list);
+    return (g_pass) ? g_Hooks.pcap_datalink_val_to_description_(dlt)
+                    : g_Hooks.pcap_datalink_val_to_description(dlt);
 }
 
-const char * pcap_datalink_val_to_name(int dlt)
+int pcap_datalink_name_to_val(const char* name)
 {
-    return (g_pass) ? g_Hooks.pcap_datalink_val_to_name_(dlt) : 
-        g_Hooks.pcap_datalink_val_to_name(dlt);
+    return (g_pass) ? g_Hooks.pcap_datalink_name_to_val_(name)
+                    : g_Hooks.pcap_datalink_name_to_val(name);
 }
 
-const char * pcap_datalink_val_to_description(int dlt)
+int pcap_is_swapped(pcap_t* p)
 {
-    return (g_pass) ? g_Hooks.pcap_datalink_val_to_description_(dlt) : 
-        g_Hooks.pcap_datalink_val_to_description(dlt);
+    return (g_pass) ? g_Hooks.pcap_is_swapped_(p) : g_Hooks.pcap_is_swapped(p);
 }
 
-int pcap_datalink_name_to_val(const char *name)
+int pcap_major_version(pcap_t* p)
 {
-    return (g_pass) ? g_Hooks.pcap_datalink_name_to_val_(name) : 
-        g_Hooks.pcap_datalink_name_to_val(name);
+    return (g_pass) ? g_Hooks.pcap_major_version_(p) : g_Hooks.pcap_major_version(p);
 }
 
-int pcap_is_swapped(pcap_t *p)
+int pcap_minor_version(pcap_t* p)
 {
-    return (g_pass) ? g_Hooks.pcap_is_swapped_(p) : 
-        g_Hooks.pcap_is_swapped(p);
+    return (g_pass) ? g_Hooks.pcap_minor_version_(p) : g_Hooks.pcap_minor_version(p);
 }
 
-int pcap_major_version(pcap_t *p)
+int pcap_loop(pcap_t* p, int cnt, pcap_handler callback, u_char* user)
 {
-    return (g_pass) ? g_Hooks.pcap_major_version_(p) : 
-        g_Hooks.pcap_major_version(p);
+    return (g_pass) ? g_Hooks.pcap_loop_(p, cnt, callback, user)
+                    : g_Hooks.pcap_loop(p, cnt, callback, user);
 }
 
-int pcap_minor_version(pcap_t *p)
+int pcap_dispatch(pcap_t* p, int cnt, pcap_handler callback, u_char* user)
 {
-    return (g_pass) ? g_Hooks.pcap_minor_version_(p) : 
-        g_Hooks.pcap_minor_version(p);
+    return (g_pass) ? g_Hooks.pcap_dispatch_(p, cnt, callback, user)
+                    : g_Hooks.pcap_dispatch(p, cnt, callback, user);
 }
 
-int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, u_char *user)
+int pcap_next_ex(pcap_t* p, struct pcap_pkthdr** pkt_header, const u_char** pkt_data)
 {
-    return (g_pass) ? g_Hooks.pcap_loop_(p, cnt, callback, user) : 
-        g_Hooks.pcap_loop(p, cnt, callback, user);
+    return (g_pass) ? g_Hooks.pcap_next_ex_(p, pkt_header, pkt_data)
+                    : g_Hooks.pcap_next_ex(p, pkt_header, pkt_data);
 }
 
-int pcap_dispatch(pcap_t *p, int cnt, pcap_handler callback, u_char *user)
+const u_char* pcap_next(pcap_t* p, struct pcap_pkthdr* h)
 {
-    return (g_pass) ? g_Hooks.pcap_dispatch_(p, cnt, callback, user) : 
-        g_Hooks.pcap_dispatch(p, cnt, callback, user);
+    return (g_pass) ? g_Hooks.pcap_next_(p, h) : g_Hooks.pcap_next(p, h);
 }
 
-int pcap_next_ex(pcap_t *p, struct pcap_pkthdr **pkt_header, const u_char **pkt_data)
+void pcap_breakloop(pcap_t* p)
 {
-    return (g_pass) ? g_Hooks.pcap_next_ex_(p, pkt_header, pkt_data) : 
-        g_Hooks.pcap_next_ex(p, pkt_header, pkt_data);
+    (g_pass) ? g_Hooks.pcap_breakloop_(p) : g_Hooks.pcap_breakloop(p);
 }
 
-const u_char *pcap_next(pcap_t *p, struct pcap_pkthdr *h)
+int pcap_setnonblock(pcap_t* p, int nonblock, char* errbuf)
 {
-    return (g_pass) ? g_Hooks.pcap_next_(p, h) : 
-        g_Hooks.pcap_next(p, h);
+    return (g_pass) ? g_Hooks.pcap_setnonblock_(p, nonblock, errbuf)
+                    : g_Hooks.pcap_setnonblock(p, nonblock, errbuf);
 }
 
-void pcap_breakloop(pcap_t *p)
+int pcap_getnonblock(pcap_t* p, char* errbuf)
 {
-    (g_pass) ? g_Hooks.pcap_breakloop_(p) : 
-        g_Hooks.pcap_breakloop(p);
+    return (g_pass) ? g_Hooks.pcap_getnonblock_(p, errbuf) : g_Hooks.pcap_getnonblock(p, errbuf);
 }
 
-int pcap_setnonblock(pcap_t *p, int nonblock, char *errbuf)
+int pcap_get_selectable_fd(pcap_t* p)
 {
-    return (g_pass) ? g_Hooks.pcap_setnonblock_(p, nonblock, errbuf) : 
-        g_Hooks.pcap_setnonblock(p, nonblock, errbuf);
+    return (0) ? g_Hooks.pcap_get_selectable_fd_(p) : g_Hooks.pcap_get_selectable_fd(p);
 }
 
-int pcap_getnonblock(pcap_t *p, char *errbuf)
+const char* pcap_statustostr(int error)
 {
-    return (g_pass) ? g_Hooks.pcap_getnonblock_(p, errbuf) : 
-        g_Hooks.pcap_getnonblock(p, errbuf);
+    return (g_pass) ? g_Hooks.pcap_statustostr_(error) : g_Hooks.pcap_statustostr(error);
 }
 
-int pcap_get_selectable_fd(pcap_t *p)
+const char* pcap_strerror(int error)
 {
-    return (0) ? g_Hooks.pcap_get_selectable_fd_(p) : 
-        g_Hooks.pcap_get_selectable_fd(p);
+    return (g_pass) ? g_Hooks.pcap_strerror_(error) : g_Hooks.pcap_strerror(error);
 }
 
-const char *pcap_statustostr(int error)
+char* pcap_geterr(pcap_t* p) { return (g_pass) ? g_Hooks.pcap_geterr_(p) : g_Hooks.pcap_geterr(p); }
+
+void pcap_perror(pcap_t* p, const char* prefix)
 {
-    return (g_pass) ? g_Hooks.pcap_statustostr_(error) : 
-        g_Hooks.pcap_statustostr(error);
+    (g_pass) ? g_Hooks.pcap_perror_(p, prefix) : g_Hooks.pcap_perror(p, prefix);
 }
 
-const char *pcap_strerror(int error)
+int pcap_compile(
+        pcap_t* p, struct bpf_program* fp, const char* str, int optimize, bpf_u_int32 netmask)
 {
-    return (g_pass) ? g_Hooks.pcap_strerror_(error) : 
-        g_Hooks.pcap_strerror(error);
+    return (g_pass) ? g_Hooks.pcap_compile_(p, fp, str, optimize, netmask)
+                    : g_Hooks.pcap_compile(p, fp, str, optimize, netmask);
 }
 
-char *pcap_geterr(pcap_t *p)
+int pcap_setfilter(pcap_t* p, struct bpf_program* fp)
 {
-    return (g_pass) ? g_Hooks.pcap_geterr_(p) : 
-        g_Hooks.pcap_geterr(p);
+    return (g_pass) ? g_Hooks.pcap_setfilter_(p, fp) : g_Hooks.pcap_setfilter(p, fp);
 }
 
-void pcap_perror(pcap_t *p, const char *prefix)
+void pcap_freecode(struct bpf_program* fp)
 {
-    (g_pass) ? g_Hooks.pcap_perror_(p, prefix) : 
-        g_Hooks.pcap_perror(p, prefix);
+    return (g_pass) ? g_Hooks.pcap_freecode_(fp) : g_Hooks.pcap_freecode(fp);
 }
 
-int pcap_compile(pcap_t *p, struct bpf_program *fp, 
-    const char *str, int optimize, bpf_u_int32 netmask)
+int pcap_lookupnet(const char* device, bpf_u_int32* netp, bpf_u_int32* maskp, char* errbuf)
 {
-    return (g_pass) ? g_Hooks.pcap_compile_(p, fp, str, optimize, netmask) : 
-        g_Hooks.pcap_compile(p, fp, str, optimize, netmask);
+    return (g_pass) ? g_Hooks.pcap_lookupnet_(device, netp, maskp, errbuf)
+                    : g_Hooks.pcap_lookupnet(device, netp, maskp, errbuf);
 }
 
-int pcap_setfilter(pcap_t *p, struct bpf_program *fp)
+int pcap_stats(pcap_t* p, struct pcap_stat* ps)
 {
-    return (g_pass) ? g_Hooks.pcap_setfilter_(p, fp) : 
-        g_Hooks.pcap_setfilter(p, fp);
+    return (g_pass) ? g_Hooks.pcap_stats_(p, ps) : g_Hooks.pcap_stats(p, ps);
 }
 
-void pcap_freecode(struct bpf_program *fp)
+int pcap_inject(pcap_t* p, const void* buf, size_t size)
 {
-    return (g_pass) ? g_Hooks.pcap_freecode_(fp) : 
-        g_Hooks.pcap_freecode(fp);
+    return (g_pass) ? g_Hooks.pcap_inject_(p, buf, size) : g_Hooks.pcap_inject(p, buf, size);
 }
 
-int pcap_lookupnet(const char *device, bpf_u_int32 *netp, bpf_u_int32 *maskp, char *errbuf)
+int pcap_sendpacket(pcap_t* p, const u_char* buf, int size)
 {
-    return (g_pass) ? g_Hooks.pcap_lookupnet_(device, netp, maskp, errbuf) : 
-        g_Hooks.pcap_lookupnet(device, netp, maskp, errbuf);
+    return (g_pass) ? g_Hooks.pcap_sendpacket_(p, buf, size)
+                    : g_Hooks.pcap_sendpacket(p, buf, size);
 }
 
-int pcap_stats(pcap_t *p, struct pcap_stat *ps)
+const char* pcap_lib_version(void)
 {
-    return (g_pass) ? g_Hooks.pcap_stats_(p, ps) : 
-        g_Hooks.pcap_stats(p, ps);
-}
-
-int pcap_inject(pcap_t *p, const void *buf, size_t size)
-{
-    return (g_pass) ? g_Hooks.pcap_inject_(p, buf, size) : 
-        g_Hooks.pcap_inject(p, buf, size);
-}
-
-int pcap_sendpacket(pcap_t *p, const u_char *buf, int size)
-{
-    return (g_pass) ? g_Hooks.pcap_sendpacket_(p, buf, size) : 
-        g_Hooks.pcap_sendpacket(p, buf, size);
-}
-
-const char *pcap_lib_version(void)
-{
-    return (g_pass) ? g_Hooks.pcap_lib_version_() : 
-        g_Hooks.pcap_lib_version();
+    return (g_pass) ? g_Hooks.pcap_lib_version_() : g_Hooks.pcap_lib_version();
 }
 
 } // extern "C"

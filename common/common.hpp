@@ -1,8 +1,8 @@
 #pragma once
+#include <map>
 #include <pcap.h>
 #include <tuple>
 #include <vector>
-#include <map>
 
 #ifdef WIN32
 typedef SOCKET socketd_t;
@@ -19,7 +19,6 @@ struct sockdeets_t
     int prot_;
 };
 typedef std::map<socketd_t, sockdeets_t> sockmap_t;
-
 
 // basic return type, and int return code and error string
 typedef std::tuple<int, std::string> rpc_pcap_basic_ret_t;
